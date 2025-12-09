@@ -678,6 +678,12 @@
                     <button class="exam-type-btn" id="user-exam-btn" onclick="selectExamType('user')">
                         <i class="fas fa-desktop"></i> آزمون کاربر رایانه
                     </button>
+                    <button class="exam-type-btn" id="typing-exam-btn" onclick="selectExamType('typing')">
+                        <i class="fas fa-keyboard"></i> آزمون تایپ رایانه
+                    </button>
+                    <button class="exam-type-btn" id="blackwhite-exam-btn" onclick="selectExamType('blackwhite')">
+                        <i class="fas fa-print"></i> آزمون سیاه و سفید
+                    </button>
                 </div>
                 
                 <!-- نمایش وضعیت سوالات -->
@@ -773,7 +779,7 @@
         <div id="help-container" class="help-container">
             <h2><i class="fas fa-info-circle"></i> راهنمای سیستم آزمون</h2>
             <p style="margin-bottom: 15px; font-size: 13px;">
-                <i class="fas fa-check" style="color: var(--success-color);"></i> دو نوع آزمون: کاربر رایانه و تایپ رایانه<br>
+                <i class="fas fa-check" style="color: var(--success-color);"></i> سه نوع آزمون: کاربر رایانه، تایپ رایانه و سیاه و سفید<br>
                 <i class="fas fa-check" style="color: var(--success-color);"></i> هر آزمون: 20 سوال تصادفی<br>
                 <i class="fas fa-check" style="color: var(--success-color);"></i> زمان هر آزمون: 30 دقیقه<br>
                 <i class="fas fa-check" style="color: var(--success-color);"></i> <strong>شرط قبولی: حداقل 6 سوال درست</strong><br>
@@ -782,9 +788,12 @@
                 <i class="fas fa-check" style="color: var(--success-color);"></i> کلیدهای 1-4: انتخاب گزینه‌ها<br>
                 <i class="fas fa-check" style="color: var(--success-color);"></i> Ctrl+Enter: پایان آزمون<br>
                 <i class="fas fa-check" style="color: var(--success-color);"></i> Escape: بازگشت به منو<br><br>
-                <strong style="color: var(--primary-color);">📁 درباره فایل سوالات:</strong><br>
-                سیستم به طور خودکار فایل <strong>QuizDiplom.txt</strong> را از کنار فایل HTML می‌خواند.<br>
-                <strong style="color: var(--danger-color);">⚠️ اگر فایل TXT پیدا نشود، آزمون کار نمی‌کند!</strong><br><br>
+                <strong style="color: var(--primary-color);">📁 درباره فایل‌های سوالات:</strong><br>
+                سیستم به طور خودکار سه فایل زیر را از کنار فایل HTML می‌خواند:<br>
+                • <strong>karbarquiz.txt</strong> - سوالات کاربر رایانه<br>
+                • <strong>typequiz.txt</strong> - سوالات تایپ رایانه<br>
+                • <strong>blackwhite.txt</strong> - سوالات سیاه و سفید<br>
+                <strong style="color: var(--danger-color);">⚠️ اگر فایل‌ها پیدا نشوند، آزمون کار نمی‌کند!</strong><br><br>
                 فرمت فایل: هر سوال در 8 خط<br>
                 1. متن سوال<br>
                 2. گزینه الف<br>
@@ -793,7 +802,7 @@
                 5. گزینه د<br>
                 6. پاسخ صحیح (الف/ب/ج/د)<br>
                 7. دسته‌بندی<br>
-                8. نوع آزمون (user/typing)<br>
+                8. نوع آزمون (برای سازگاری)<br>
                 9. یک خط خالی بین سوالات<br><br>
                 <span style="color: var(--success-color); font-weight: bold; font-size: 14px;">موفق باشید!</span>
             </p>
@@ -815,9 +824,10 @@
         let correctPassword = "1452";
         let userAnswers = [];
         
-        // متغیرهای برای ذخیره سوالات از فایل TXT
+        // متغیرهای برای ذخیره سوالات از فایل‌های مختلف
         let userQuestions = [];
         let typingQuestions = [];
+        let blackwhiteQuestions = [];
         let questionsLoaded = false;
         let loadingAttempted = false;
 
@@ -833,7 +843,7 @@
                 await loadQuestionsAutomatically();
                 loadingMessage.style.display = 'none';
                 
-                if (questionsLoaded && (userQuestions.length > 0 || typingQuestions.length > 0)) {
+                if (questionsLoaded && (userQuestions.length > 0 || typingQuestions.length > 0 || blackwhiteQuestions.length > 0)) {
                     loginMessage.textContent = '✅ سیستم آماده است';
                     loginMessage.style.color = 'var(--success-color)';
                 } else {
@@ -848,7 +858,7 @@
             }
         }
 
-        // تابع بارگذاری خودکار سوالات از فایل TXT - نسخه اصلاح شده
+        // تابع بارگذاری خودکار سوالات از فایل‌های مختلف
         async function loadQuestionsAutomatically() {
             if (loadingAttempted) {
                 return questionsLoaded;
@@ -857,50 +867,90 @@
             loadingAttempted = true;
             
             try {
-                console.log('🔍 در حال جستجوی فایل QuizDiplom.txt...');
+                console.log('🔍 در حال جستجوی فایل‌های سوالات...');
                 
-                // تلاش برای بارگذاری فایل TXT با timeout
+                // بارگذاری همزمان از سه فایل مختلف
+                const [userData, typingData, blackwhiteData] = await Promise.allSettled([
+                    loadTextFile('karbarquiz.txt'),
+                    loadTextFile('typequiz.txt'),
+                    loadTextFile('blackwhite.txt')
+                ]);
+                
+                console.log('📊 نتایج بارگذاری فایل‌ها:');
+                console.log('- کاربر رایانه:', userData.status);
+                console.log('- تایپ رایانه:', typingData.status);
+                console.log('- سیاه و سفید:', blackwhiteData.status);
+                
+                // پردازش فایل کاربر رایانه
+                if (userData.status === 'fulfilled' && userData.value) {
+                    await parseTxtQuestions(userData.value, 'user');
+                } else {
+                    console.warn('⚠️ فایل karbarquiz.txt پیدا نشد یا خطا در خواندن');
+                }
+                
+                // پردازش فایل تایپ رایانه
+                if (typingData.status === 'fulfilled' && typingData.value) {
+                    await parseTxtQuestions(typingData.value, 'typing');
+                } else {
+                    console.warn('⚠️ فایل typequiz.txt پیدا نشد یا خطا در خواندن');
+                }
+                
+                // پردازش فایل سیاه و سفید
+                if (blackwhiteData.status === 'fulfilled' && blackwhiteData.value) {
+                    await parseTxtQuestions(blackwhiteData.value, 'blackwhite');
+                } else {
+                    console.warn('⚠️ فایل blackwhite.txt پیدا نشد یا خطا در خواندن');
+                }
+                
+                // بررسی اینکه آیا حداقل یک فایل سوال داشته‌ایم
+                if (userQuestions.length === 0 && typingQuestions.length === 0 && blackwhiteQuestions.length === 0) {
+                    throw new Error('هیچ سوال معتبری در فایل‌های TXT پیدا نشد');
+                }
+                
+                questionsLoaded = true;
+                console.log(`✅ سوالات بارگذاری شد: ${userQuestions.length} سوال کاربر، ${typingQuestions.length} سوال تایپ، ${blackwhiteQuestions.length} سوال سیاه و سفید`);
+                return true;
+            } catch (error) {
+                console.error('❌ خطا در بارگذاری خودکار سوالات:', error);
+                throw new Error('فایل‌های سوالات پیدا نشدند یا قابل خواندن نیستند. لطفاً فایل‌ها را در کنار فایل HTML قرار دهید.');
+            }
+        }
+
+        // تابع بارگذاری فایل متنی
+        async function loadTextFile(filename) {
+            try {
+                console.log(`📄 در حال خواندن فایل ${filename}...`);
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000);
                 
-                const response = await fetch('QuizDiplom.txt', {
+                const response = await fetch(filename, {
                     signal: controller.signal,
-                    cache: 'no-cache' // جلوگیری از کش شدن
+                    cache: 'no-cache'
                 });
                 
                 clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    throw new Error(`خطای HTTP: ${response.status}`);
+                    throw new Error(`خطای HTTP ${response.status} برای فایل ${filename}`);
                 }
                 
                 const text = await response.text();
-                console.log('📄 فایل TXT خوانده شد، حجم:', text.length, 'کاراکتر');
                 
                 if (!text || text.trim().length === 0) {
-                    throw new Error('فایل TXT خالی است');
+                    throw new Error(`فایل ${filename} خالی است`);
                 }
                 
-                await parseTxtQuestions(text);
-                
-                if (userQuestions.length === 0 && typingQuestions.length === 0) {
-                    throw new Error('هیچ سوال معتبری در فایل TXT پیدا نشد');
-                }
-                
-                questionsLoaded = true;
-                console.log(`✅ سوالات بارگذاری شد: ${userQuestions.length} سوال کاربر، ${typingQuestions.length} سوال تایپ`);
-                return true;
+                console.log(`✓ فایل ${filename} خوانده شد، حجم: ${text.length} کاراکتر`);
+                return text;
             } catch (error) {
-                console.error('❌ خطا در بارگذاری خودکار سوالات:', error);
-                // به جای ایجاد سوالات نمونه، خطا می‌دهیم
-                throw new Error('فایل QuizDiplom.txt پیدا نشد یا قابل خواندن نیست. لطفاً فایل را در کنار فایل HTML قرار دهید.');
+                console.warn(`❌ خطا در خواندن فایل ${filename}:`, error.message);
+                return null;
             }
         }
 
-        // تابع تجزیه و تحلیل سوالات از فایل TXT - نسخه بهبود یافته
-        async function parseTxtQuestions(text) {
-            userQuestions = [];
-            typingQuestions = [];
+        // تابع تجزیه و تحلیل سوالات از فایل TXT
+        async function parseTxtQuestions(text, fileType) {
+            console.log(`📝 پردازش فایل ${fileType}...`);
             
             const lines = text.split('\n');
             let currentQuestion = null;
@@ -912,20 +962,25 @@
                 lineNumber++;
                 let line = lines[i].trim();
                 
-                // حذف کاراکترهای غیرضروری
                 line = line.replace(/\r/g, '');
                 
                 if (line === '' || line === ' ' || line === '\t') {
-                    // خط خالی یا فقط فاصله - سوال قبلی را ذخیره کن
+                    // خط خالی - سوال قبلی را ذخیره کن
                     if (currentQuestion && currentQuestion.question && currentQuestion.question.trim() !== '') {
                         if (validateQuestion(currentQuestion, questionCount + 1)) {
-                            if (currentQuestion.type === 'user') {
-                                userQuestions.push(currentQuestion);
-                            } else if (currentQuestion.type === 'typing') {
-                                typingQuestions.push(currentQuestion);
+                            // بر اساس نوع فایل، سوال را در آرایه مناسب ذخیره کن
+                            switch(fileType) {
+                                case 'user':
+                                    userQuestions.push(currentQuestion);
+                                    break;
+                                case 'typing':
+                                    typingQuestions.push(currentQuestion);
+                                    break;
+                                case 'blackwhite':
+                                    blackwhiteQuestions.push(currentQuestion);
+                                    break;
                             }
                             questionCount++;
-                            console.log(`✓ سوال ${questionCount} اضافه شد: ${currentQuestion.type}`);
                         }
                     }
                     currentQuestion = null;
@@ -939,7 +994,7 @@
                         options: ['', '', '', ''],
                         answer: '',
                         category: 'عمومی',
-                        type: ''
+                        type: fileType // ذخیره نوع آزمون
                     };
                 }
                 
@@ -960,10 +1015,8 @@
                         currentQuestion.options[3] = line;
                         break;
                     case 5: // پاسخ صحیح
-                        // نرمال کردن پاسخ (حذف نقطه و فاصله)
                         line = line.replace(/[\.\s]/g, '').trim();
                         if (['الف', 'ب', 'ج', 'د', 'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'].includes(line)) {
-                            // تبدیل حروف انگلیسی به فارسی
                             const answerMap = {
                                 'a': 'الف', 'A': 'الف',
                                 'b': 'ب', 'B': 'ب',
@@ -972,23 +1025,15 @@
                             };
                             currentQuestion.answer = answerMap[line] || line;
                         } else {
-                            console.warn(`⚠️ پاسخ نامعتبر در خط ${lineNumber}: "${line}"`);
-                            currentQuestion.answer = 'الف'; // مقدار پیش‌فرض
+                            console.warn(`⚠️ پاسخ نامعتبر در خط ${lineNumber} فایل ${fileType}: "${line}"`);
+                            currentQuestion.answer = 'الف';
                         }
                         break;
                     case 6: // دسته‌بندی
                         currentQuestion.category = line || 'عمومی';
                         break;
-                    case 7: // نوع آزمون
-                        line = line.toLowerCase().trim();
-                        if (line === 'user' || line === 'کاربر' || line === 'کامپیوتر') {
-                            currentQuestion.type = 'user';
-                        } else if (line === 'typing' || line === 'تایپ' || line === 'ورد') {
-                            currentQuestion.type = 'typing';
-                        } else {
-                            console.warn(`⚠️ نوع آزمون نامعتبر در خط ${lineNumber}: "${line}" - به صورت پیش‌فرض user در نظر گرفته شد`);
-                            currentQuestion.type = 'user';
-                        }
+                    case 7: // نوع آزمون (برای سازگاری)
+                        // این خط برای سازگاری با فرمت قبلی نگه داشته شده
                         break;
                 }
                 
@@ -997,51 +1042,42 @@
                 // اگر آخرین خط فایل باشد، سوال را ذخیره کن
                 if (i === lines.length - 1 && currentQuestion && currentQuestion.question && currentQuestion.question.trim() !== '') {
                     if (validateQuestion(currentQuestion, questionCount + 1)) {
-                        if (currentQuestion.type === 'user') {
-                            userQuestions.push(currentQuestion);
-                        } else if (currentQuestion.type === 'typing') {
-                            typingQuestions.push(currentQuestion);
+                        switch(fileType) {
+                            case 'user':
+                                userQuestions.push(currentQuestion);
+                                break;
+                            case 'typing':
+                                typingQuestions.push(currentQuestion);
+                                break;
+                            case 'blackwhite':
+                                blackwhiteQuestions.push(currentQuestion);
+                                break;
                         }
                         questionCount++;
                     }
                 }
             }
             
-            console.log(`📊 پردازش کامل شد: ${questionCount} سوال معتبر`);
-            console.log(` - کاربر رایانه: ${userQuestions.length} سوال`);
-            console.log(` - تایپ رایانه: ${typingQuestions.length} سوال`);
-            
-            if (userQuestions.length === 0 && typingQuestions.length === 0) {
-                throw new Error('هیچ سوال معتبری در فایل TXT پیدا نشد');
-            }
+            console.log(`✓ فایل ${fileType}: ${questionCount} سوال معتبر پیدا شد`);
         }
 
         // تابع اعتبارسنجی سوال
         function validateQuestion(question, index) {
             if (!question.question || question.question.trim() === '') {
-                console.warn(`❌ سوال ${index}: متن سوال خالی است`);
                 return false;
             }
             
             if (!question.options[0] || !question.options[1] || !question.options[2] || !question.options[3]) {
-                console.warn(`❌ سوال ${index}: برخی گزینه‌ها خالی هستند`);
                 return false;
             }
             
             if (!question.answer || !['الف', 'ب', 'ج', 'د'].includes(question.answer)) {
-                console.warn(`❌ سوال ${index}: پاسخ نامعتبر "${question.answer}"`);
-                return false;
-            }
-            
-            if (!question.type || (question.type !== 'user' && question.type !== 'typing')) {
-                console.warn(`❌ سوال ${index}: نوع آزمون نامعتبر "${question.type}"`);
                 return false;
             }
             
             // بررسی وجود پاسخ در گزینه‌ها
             const answerIndex = ['الف', 'ب', 'ج', 'د'].indexOf(question.answer);
             if (answerIndex === -1 || !question.options[answerIndex]) {
-                console.warn(`❌ سوال ${index}: پاسخ "${question.answer}" در گزینه‌ها وجود ندارد`);
                 return false;
             }
             
@@ -1054,22 +1090,29 @@
             if (!statusElement) return;
             
             if (!questionsLoaded) {
-                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> سوالات بارگذاری نشد! فایل QuizDiplom.txt را بررسی کنید.';
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> سوالات بارگذاری نشد! فایل‌های سوالات را بررسی کنید.';
             } else {
                 const userCount = userQuestions.length;
                 const typingCount = typingQuestions.length;
+                const blackwhiteCount = blackwhiteQuestions.length;
                 
-                if (userCount === 0 && typingCount === 0) {
-                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> هیچ سوالی یافت نشد! فرمت فایل را بررسی کنید.';
+                if (userCount === 0 && typingCount === 0 && blackwhiteCount === 0) {
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> هیچ سوالی یافت نشد! فرمت فایل‌ها را بررسی کنید.';
                 } else {
                     let statusHTML = `<i class="fas fa-check-circle" style="color: var(--success-color);"></i> `;
+                    let parts = [];
+                    
                     if (userCount > 0) {
-                        statusHTML += `<span style="color: var(--primary-color);">${userCount} سوال کاربر</span>`;
+                        parts.push(`<span style="color: var(--primary-color);">${userCount} سوال کاربر</span>`);
                     }
                     if (typingCount > 0) {
-                        if (userCount > 0) statusHTML += ' | ';
-                        statusHTML += `<span style="color: var(--secondary-color);">${typingCount} سوال تایپ</span>`;
+                        parts.push(`<span style="color: var(--secondary-color);">${typingCount} سوال تایپ</span>`);
                     }
+                    if (blackwhiteCount > 0) {
+                        parts.push(`<span style="color: #333;">${blackwhiteCount} سوال سیاه‌وسفید</span>`);
+                    }
+                    
+                    statusHTML += parts.join(' | ');
                     statusElement.innerHTML = statusHTML;
                 }
             }
@@ -1088,7 +1131,6 @@
                     document.getElementById('login-container').style.display = 'none';
                     document.getElementById('main-menu').style.display = 'flex';
                     messageElement.textContent = '';
-                    // به‌روزرسانی وضعیت سوالات
                     updateQuestionsStatus();
                 }, 300);
             } else {
@@ -1104,19 +1146,38 @@
         // تابع انتخاب نوع آزمون
         function selectExamType(type) {
             if (!questionsLoaded) {
-                alert('❌ سوالات بارگذاری نشده‌اند!\n\nلطفاً:\n1. فایل QuizDiplom.txt را در کنار فایل HTML قرار دهید\n2. صفحه را رفرش کنید\n3. دوباره وارد شوید');
+                alert('❌ سوالات بارگذاری نشده‌اند!\n\nلطفاً:\n1. فایل‌های سوالات را در کنار فایل HTML قرار دهید\n2. صفحه را رفرش کنید\n3. دوباره وارد شوید');
                 return;
             }
             
-            const allQuestions = type === 'user' ? userQuestions : typingQuestions;
+            let allQuestions;
+            let examName;
+            
+            switch(type) {
+                case 'user':
+                    allQuestions = userQuestions;
+                    examName = 'کاربر رایانه';
+                    break;
+                case 'typing':
+                    allQuestions = typingQuestions;
+                    examName = 'تایپ رایانه';
+                    break;
+                case 'blackwhite':
+                    allQuestions = blackwhiteQuestions;
+                    examName = 'سیاه و سفید';
+                    break;
+                default:
+                    alert('❌ نوع آزمون نامعتبر');
+                    return;
+            }
             
             if (allQuestions.length === 0) {
-                alert(`❌ هیچ سوالی برای آزمون ${type === 'user' ? 'کاربر رایانه' : 'تایپ رایانه'} یافت نشد.\n\nلطفاً فایل QuizDiplom.txt را بررسی کنید.`);
+                alert(`❌ هیچ سوالی برای آزمون ${examName} یافت نشد.\n\nلطفاً فایل ${type === 'user' ? 'karbarquiz.txt' : type === 'typing' ? 'typequiz.txt' : 'blackwhite.txt'} را بررسی کنید.`);
                 return;
             }
             
             if (allQuestions.length < 10) {
-                if (!confirm(`⚠️ فقط ${allQuestions.length} سوال برای این آزمون وجود دارد. آیا می‌خواهید ادامه دهید؟`)) {
+                if (!confirm(`⚠️ فقط ${allQuestions.length} سوال برای آزمون ${examName} وجود دارد. آیا می‌خواهید ادامه دهید؟`)) {
                     return;
                 }
             }
@@ -1146,17 +1207,36 @@
 
         // تابع شروع آزمون
         function startRandomExam(type) {
-            if (type) {
-                currentExamType = type;
-            }
-            
             document.getElementById('main-menu').style.display = 'none';
             document.getElementById('quiz-container').style.display = 'block';
             
-            const title = currentExamType === 'user' ? "🎯 آزمون کاربر رایانه" : "⌨️ آزمون تایپ رایانه";
+            let title = '';
+            switch(type) {
+                case 'user':
+                    title = "🎯 آزمون کاربر رایانه";
+                    break;
+                case 'typing':
+                    title = "⌨️ آزمون تایپ رایانه";
+                    break;
+                case 'blackwhite':
+                    title = "⚫⚪ آزمون سیاه و سفید";
+                    break;
+            }
+            
             document.getElementById('lesson-title').textContent = title;
             
-            const allQuestions = currentExamType === 'user' ? userQuestions : typingQuestions;
+            let allQuestions;
+            switch(type) {
+                case 'user':
+                    allQuestions = userQuestions;
+                    break;
+                case 'typing':
+                    allQuestions = typingQuestions;
+                    break;
+                case 'blackwhite':
+                    allQuestions = blackwhiteQuestions;
+                    break;
+            }
             
             // انتخاب سوالات تصادفی (حداکثر 20 سوال)
             const questionCount = Math.min(20, allQuestions.length);
@@ -1174,9 +1254,8 @@
             updateNavButtons();
         }
 
-        // تابع انتخاب تصادفی سوالات و گزینه‌ها - نسخه کاملاً تصادفی
+        // تابع انتخاب تصادفی سوالات و گزینه‌ها
         function getRandomQuestions(allQuestions, count) {
-            // 1. انتخاب تصادفی سوالات
             const shuffledQuestions = [...allQuestions];
             for (let i = shuffledQuestions.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -1185,23 +1264,17 @@
             
             const selected = shuffledQuestions.slice(0, count);
             
-            // 2. برای هر سوال، ترتیب گزینه‌ها را تصادفی کن
             selected.forEach(question => {
-                // ذخیره پاسخ اصلی
                 const correctAnswer = question.answer;
                 const originalOptions = [...question.options];
-                
-                // پیدا کردن اندیس پاسخ صحیح در گزینه‌های اصلی
                 const originalAnswerIndex = ['الف', 'ب', 'ج', 'د'].indexOf(correctAnswer);
                 
-                // ایجاد آرایه اندیس‌ها برای مخلوط کردن
                 const indices = [0, 1, 2, 3];
                 for (let i = indices.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [indices[i], indices[j]] = [indices[j], indices[i]];
                 }
                 
-                // ایجاد گزینه‌های مخلوط شده
                 const shuffledOptions = [
                     originalOptions[indices[0]],
                     originalOptions[indices[1]],
@@ -1209,31 +1282,20 @@
                     originalOptions[indices[3]]
                 ];
                 
-                // پیدا کردن اندیس پاسخ صحیح در گزینه‌های مخلوط شده
                 const correctAnswerText = originalOptions[originalAnswerIndex];
                 const newCorrectIndex = shuffledOptions.indexOf(correctAnswerText);
                 
-                // ذخیره اطلاعات مخلوط شده
-                question.originalOptions = [...originalOptions]; // ذخیره گزینه‌های اصلی برای دیباگ
+                question.originalOptions = [...originalOptions];
                 question.shuffledOptions = shuffledOptions;
                 question.correctIndex = newCorrectIndex;
                 question.originalCorrectIndex = originalAnswerIndex;
-                question.shuffleMap = indices; // نقشه مخلوط کردن برای دیباگ
+                question.shuffleMap = indices;
                 
-                // اگر پاسخ صحیح در گزینه‌های مخلوط شده پیدا نشد (که نباید اتفاق بیفتد)
                 if (question.correctIndex === -1) {
                     console.error('❌ خطا در مخلوط کردن گزینه‌ها:', question);
                     question.shuffledOptions = [...originalOptions];
                     question.correctIndex = originalAnswerIndex;
                 }
-                
-                console.log(`سوال: ${question.question.substring(0, 30)}...`);
-                console.log(`- پاسخ اصلی: ${correctAnswer} (ایندکس اصلی: ${originalAnswerIndex})`);
-                console.log(`- ایندکس جدید: ${question.correctIndex}`);
-                console.log(`- گزینه‌های اصلی:`, originalOptions);
-                console.log(`- گزینه‌های مخلوط:`, shuffledOptions);
-                console.log(`- نقشه مخلوط:`, indices);
-                console.log('---');
             });
             
             return selected;
@@ -1287,8 +1349,6 @@
             document.getElementById('question').textContent = `سوال ${currentQuestionIndex + 1}: ${question.question}`;
             
             const optionElements = document.querySelectorAll('#options .option-btn');
-            
-            // استفاده از گزینه‌های مخلوط شده
             const displayOptions = question.shuffledOptions || [...question.options];
             
             for (let i = 0; i < 4; i++) {
@@ -1495,29 +1555,11 @@
             
             summaryElement.textContent = resultMessage;
             
-            // دیباگ برای بررسی صحت پاسخ‌ها
-            debugQuestionAnswers();
-            
             displayCategoryResults(categoryStats);
             
             currentQuestionIndex = 0;
             createResultNumberButtons();
             showResultQuestion();
-        }
-
-        // تابع دیباگ برای بررسی صحت پاسخ‌ها
-        function debugQuestionAnswers() {
-            console.log('=== دیباگ سوالات و پاسخ‌ها ===');
-            currentQuestions.forEach((q, index) => {
-                console.log(`سوال ${index + 1}:`);
-                console.log(`- متن: ${q.question.substring(0, 50)}...`);
-                console.log(`- پاسخ صحیح اصلی: ${q.answer}`);
-                console.log(`- correctIndex (جدید): ${q.correctIndex}`);
-                console.log(`- shuffledOptions:`, q.shuffledOptions);
-                console.log(`- پاسخ کاربر: ${userAnswers[index] !== null ? userAnswers[index] : 'پاسخ نداده'}`);
-                console.log(`- وضعیت: ${userAnswers[index] === q.correctIndex ? 'درست' : userAnswers[index] !== null ? 'غلط' : 'بی‌پاسخ'}`);
-                console.log('---');
-            });
         }
 
         // تابع نمایش نتایج تفکیکی
@@ -1545,15 +1587,13 @@
             }
         }
 
-        // تابع نمایش سوال در صفحه نتایج - نسخه اصلاح شده
+        // تابع نمایش سوال در صفحه نتایج
         function showResultQuestion() {
             if (currentQuestionIndex >= currentQuestions.length) return;
             const question = currentQuestions[currentQuestionIndex];
             document.getElementById('result-question').textContent = `سوال ${currentQuestionIndex + 1}: ${question.question}`;
             
             const optionElements = document.querySelectorAll('#result-options .option-btn');
-            
-            // استفاده از گزینه‌های مخلوط شده ذخیره شده
             const displayOptions = question.shuffledOptions || [...question.options];
             const correctIndex = question.correctIndex !== undefined ? question.correctIndex : ['الف', 'ب', 'ج', 'د'].indexOf(question.answer);
             
@@ -1564,7 +1604,6 @@
                     btn.style.display = 'flex';
                     btn.classList.remove('correct', 'incorrect', 'selected');
                     
-                    // بررسی درست یا غلط بودن گزینه
                     if (i === correctIndex) {
                         btn.classList.add('correct');
                     } else if (userAnswers[currentQuestionIndex] === i && userAnswers[currentQuestionIndex] !== correctIndex) {
@@ -1649,7 +1688,6 @@
             document.getElementById('results-container').style.display = 'none';
             document.getElementById('help-container').style.display = 'none';
             
-            // به‌روزرسانی وضعیت سوالات
             updateQuestionsStatus();
         }
 
@@ -1715,7 +1753,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 سیستم آزمون در حال راه‌اندازی...');
             
-            // فوراً شروع به بارگذاری سوالات می‌کنیم
             loadQuestionsAutomatically().then((success) => {
                 if (success) {
                     console.log('✅ سوالات با موفقیت بارگذاری شدند');
@@ -1726,7 +1763,6 @@
                 console.error('❌ خطا در بارگذاری سوالات:', error);
             });
             
-            // رویدادهای ورود
             document.getElementById('password-input').addEventListener('keypress', function(event) {
                 if (event.key === 'Enter') {
                     checkPassword();
