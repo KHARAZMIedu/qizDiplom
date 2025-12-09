@@ -811,6 +811,7 @@
                 <i class="fas fa-check" style="color: var(--success-color);"></i> Escape: بازگشت به منو<br><br>
                 <strong style="color: var(--primary-color);">📁 درباره فایل سوالات:</strong><br>
                 سیستم به طور خودکار فایل <strong>QuizDiplom.txt</strong> را از کنار فایل HTML می‌خواند.<br>
+                <strong style="color: var(--danger-color);">⚠️ اگر فایل TXT پیدا نشود، آزمون کار نمی‌کند!</strong><br><br>
                 فرمت فایل: هر سوال در 8 خط<br>
                 1. متن سوال<br>
                 2. گزینه الف<br>
@@ -859,17 +860,23 @@
                 await loadQuestionsAutomatically();
                 
                 loadingMessage.style.display = 'none';
-                loginMessage.textContent = '✅ سیستم آماده است';
-                loginMessage.style.color = 'var(--success-color)';
+                
+                if (questionsLoaded && (userQuestions.length > 0 || typingQuestions.length > 0)) {
+                    loginMessage.textContent = '✅ سیستم آماده است';
+                    loginMessage.style.color = 'var(--success-color)';
+                } else {
+                    loginMessage.textContent = '❌ فایل سوالات پیدا نشد یا خالی است!';
+                    loginMessage.style.color = 'var(--danger-color)';
+                }
             } catch (error) {
                 loadingMessage.style.display = 'none';
-                loginMessage.textContent = '⚠️ خطا در بارگذاری سوالات';
-                loginMessage.style.color = 'var(--warning-color)';
+                loginMessage.textContent = '❌ خطا در بارگذاری سوالات: ' + error.message;
+                loginMessage.style.color = 'var(--danger-color)';
                 console.error('خطا در بارگذاری:', error);
             }
         }
 
-        // تابع بارگذاری خودکار سوالات از فایل TXT
+        // تابع بارگذاری خودکار سوالات از فایل TXT - نسخه اصلاح شده
         async function loadQuestionsAutomatically() {
             if (loadingAttempted) {
                 return questionsLoaded;
@@ -878,15 +885,35 @@
             loadingAttempted = true;
             
             try {
-                // تلاش برای بارگذاری فایل TXT
-                const response = await fetch('QuizDiplom.txt');
+                console.log('🔍 در حال جستجوی فایل QuizDiplom.txt...');
+                
+                // تلاش برای بارگذاری فایل TXT با timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('QuizDiplom.txt', {
+                    signal: controller.signal,
+                    cache: 'no-cache' // جلوگیری از کش شدن
+                });
+                
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    throw new Error('فایل QuizDiplom.txt یافت نشد');
+                    throw new Error(`خطای HTTP: ${response.status}`);
                 }
                 
                 const text = await response.text();
+                console.log('📄 فایل TXT خوانده شد، حجم:', text.length, 'کاراکتر');
+                
+                if (!text || text.trim().length === 0) {
+                    throw new Error('فایل TXT خالی است');
+                }
+                
                 await parseTxtQuestions(text);
+                
+                if (userQuestions.length === 0 && typingQuestions.length === 0) {
+                    throw new Error('هیچ سوال معتبری در فایل TXT پیدا نشد');
+                }
                 
                 questionsLoaded = true;
                 console.log(`✅ سوالات بارگذاری شد: ${userQuestions.length} سوال کاربر، ${typingQuestions.length} سوال تایپ`);
@@ -894,53 +921,12 @@
             } catch (error) {
                 console.error('❌ خطا در بارگذاری خودکار سوالات:', error);
                 
-                // ایجاد چند سوال نمونه برای تست
-                createSampleQuestions();
-                questionsLoaded = true;
-                
-                console.log(`⚠️ از سوالات نمونه استفاده شد: ${userQuestions.length} سوال کاربر، ${typingQuestions.length} سوال تایپ`);
-                return false;
+                // به جای ایجاد سوالات نمونه، خطا می‌دهیم
+                throw new Error('فایل QuizDiplom.txt پیدا نشد یا قابل خواندن نیست. لطفاً فایل را در کنار فایل HTML قرار دهید.');
             }
         }
 
-        // تابع ایجاد سوالات نمونه (اگر فایل TXT پیدا نشد)
-        function createSampleQuestions() {
-            userQuestions = [
-                {
-                    "question": "سیستم عامل ویندوز محصول کدام شرکت است؟",
-                    "options": ["Apple", "Microsoft", "Google", "IBM"],
-                    "answer": "Microsoft",
-                    "category": "مبانی",
-                    "type": "user"
-                },
-                {
-                    "question": "برای ذخیره یک فایل از چه کلید ترکیبی استفاده می‌شود؟",
-                    "options": ["Ctrl+S", "Ctrl+C", "Ctrl+V", "Ctrl+X"],
-                    "answer": "Ctrl+S",
-                    "category": "ویندوز",
-                    "type": "user"
-                }
-            ];
-            
-            typingQuestions = [
-                {
-                    "question": "در نرم افزار Word برای ذخیره فایل از چه گزینه‌ای استفاده می‌شود؟",
-                    "options": ["File > Save", "Edit > Save", "View > Save", "Tools > Save"],
-                    "answer": "File > Save",
-                    "category": "Word",
-                    "type": "typing"
-                },
-                {
-                    "question": "کلید ترکیبی Ctrl+B در Word چه کاری انجام می‌دهد؟",
-                    "options": ["متن را Bold می‌کند", "متن را Italic می‌کند", "متن را Underline می‌کند", "متن را کپی می‌کند"],
-                    "answer": "متن را Bold می‌کند",
-                    "category": "Word",
-                    "type": "typing"
-                }
-            ];
-        }
-
-        // تابع تجزیه و تحلیل سوالات از فایل TXT
+        // تابع تجزیه و تحلیل سوالات از فایل TXT - نسخه بهبود یافته
         async function parseTxtQuestions(text) {
             userQuestions = [];
             typingQuestions = [];
@@ -949,19 +935,27 @@
             let currentQuestion = null;
             let lineCount = 0;
             let questionCount = 0;
+            let lineNumber = 0;
             
             for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
+                lineNumber++;
+                let line = lines[i].trim();
                 
-                if (line === '') {
-                    // خط خالی - سوال قبلی را ذخیره کن
-                    if (currentQuestion && currentQuestion.question) {
-                        if (currentQuestion.type === 'user') {
-                            userQuestions.push(currentQuestion);
-                        } else if (currentQuestion.type === 'typing') {
-                            typingQuestions.push(currentQuestion);
+                // حذف کاراکترهای غیرضروری
+                line = line.replace(/\r/g, '');
+                
+                if (line === '' || line === ' ' || line === '\t') {
+                    // خط خالی یا فقط فاصله - سوال قبلی را ذخیره کن
+                    if (currentQuestion && currentQuestion.question && currentQuestion.question.trim() !== '') {
+                        if (validateQuestion(currentQuestion, questionCount + 1)) {
+                            if (currentQuestion.type === 'user') {
+                                userQuestions.push(currentQuestion);
+                            } else if (currentQuestion.type === 'typing') {
+                                typingQuestions.push(currentQuestion);
+                            }
+                            questionCount++;
+                            console.log(`✓ سوال ${questionCount} اضافه شد: ${currentQuestion.type}`);
                         }
-                        questionCount++;
                     }
                     currentQuestion = null;
                     lineCount = 0;
@@ -995,37 +989,92 @@
                         currentQuestion.options[3] = line;
                         break;
                     case 5: // پاسخ صحیح
-                        currentQuestion.answer = line;
+                        // نرمال کردن پاسخ (حذف نقطه و فاصله)
+                        line = line.replace(/[\.\s]/g, '').trim();
+                        if (['الف', 'ب', 'ج', 'د', 'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'].includes(line)) {
+                            // تبدیل حروف انگلیسی به فارسی
+                            const answerMap = {
+                                'a': 'الف', 'A': 'الف',
+                                'b': 'ب', 'B': 'ب',
+                                'c': 'ج', 'C': 'ج',
+                                'd': 'د', 'D': 'د'
+                            };
+                            currentQuestion.answer = answerMap[line] || line;
+                        } else {
+                            console.warn(`⚠️ پاسخ نامعتبر در خط ${lineNumber}: "${line}"`);
+                            currentQuestion.answer = 'الف'; // مقدار پیش‌فرض
+                        }
                         break;
                     case 6: // دسته‌بندی
                         currentQuestion.category = line || 'عمومی';
                         break;
                     case 7: // نوع آزمون
-                        currentQuestion.type = line.toLowerCase();
+                        line = line.toLowerCase().trim();
+                        if (line === 'user' || line === 'کاربر' || line === 'کامپیوتر') {
+                            currentQuestion.type = 'user';
+                        } else if (line === 'typing' || line === 'تایپ' || line === 'ورد') {
+                            currentQuestion.type = 'typing';
+                        } else {
+                            console.warn(`⚠️ نوع آزمون نامعتبر در خط ${lineNumber}: "${line}" - به صورت پیش‌فرض user در نظر گرفته شد`);
+                            currentQuestion.type = 'user';
+                        }
                         break;
                 }
                 
                 lineCount++;
                 
                 // اگر آخرین خط فایل باشد، سوال را ذخیره کن
-                if (i === lines.length - 1 && currentQuestion && currentQuestion.question) {
-                    if (currentQuestion.type === 'user') {
-                        userQuestions.push(currentQuestion);
-                    } else if (currentQuestion.type === 'typing') {
-                        typingQuestions.push(currentQuestion);
+                if (i === lines.length - 1 && currentQuestion && currentQuestion.question && currentQuestion.question.trim() !== '') {
+                    if (validateQuestion(currentQuestion, questionCount + 1)) {
+                        if (currentQuestion.type === 'user') {
+                            userQuestions.push(currentQuestion);
+                        } else if (currentQuestion.type === 'typing') {
+                            typingQuestions.push(currentQuestion);
+                        }
+                        questionCount++;
                     }
-                    questionCount++;
                 }
             }
             
-            console.log(`تعداد کل سوالات پردازش شده: ${questionCount}`);
-            console.log(`سوالات کاربر رایانه: ${userQuestions.length}`);
-            console.log(`سوالات تایپ رایانه: ${typingQuestions.length}`);
+            console.log(`📊 پردازش کامل شد: ${questionCount} سوال معتبر`);
+            console.log(`   - کاربر رایانه: ${userQuestions.length} سوال`);
+            console.log(`   - تایپ رایانه: ${typingQuestions.length} سوال`);
             
-            // اگر سوالی بارگذاری نشد، پیام خطا نشان بده
             if (userQuestions.length === 0 && typingQuestions.length === 0) {
-                throw new Error('هیچ سوالی از فایل TXT بارگذاری نشد');
+                throw new Error('هیچ سوال معتبری در فایل TXT پیدا نشد');
             }
+        }
+
+        // تابع اعتبارسنجی سوال
+        function validateQuestion(question, index) {
+            if (!question.question || question.question.trim() === '') {
+                console.warn(`❌ سوال ${index}: متن سوال خالی است`);
+                return false;
+            }
+            
+            if (!question.options[0] || !question.options[1] || !question.options[2] || !question.options[3]) {
+                console.warn(`❌ سوال ${index}: برخی گزینه‌ها خالی هستند`);
+                return false;
+            }
+            
+            if (!question.answer || !['الف', 'ب', 'ج', 'د'].includes(question.answer)) {
+                console.warn(`❌ سوال ${index}: پاسخ نامعتبر "${question.answer}"`);
+                return false;
+            }
+            
+            if (!question.type || (question.type !== 'user' && question.type !== 'typing')) {
+                console.warn(`❌ سوال ${index}: نوع آزمون نامعتبر "${question.type}"`);
+                return false;
+            }
+            
+            // بررسی وجود پاسخ در گزینه‌ها
+            const answerIndex = ['الف', 'ب', 'ج', 'د'].indexOf(question.answer);
+            if (answerIndex === -1 || !question.options[answerIndex]) {
+                console.warn(`❌ سوال ${index}: پاسخ "${question.answer}" در گزینه‌ها وجود ندارد`);
+                return false;
+            }
+            
+            return true;
         }
 
         // تابع به‌روزرسانی وضعیت سوالات در منوی اصلی
@@ -1034,15 +1083,26 @@
             if (!statusElement) return;
             
             if (!questionsLoaded) {
-                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--warning-color);"></i> سوالات بارگذاری نشده';
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> سوالات بارگذاری نشد! فایل QuizDiplom.txt را بررسی کنید.';
             } else {
                 const userCount = userQuestions.length;
                 const typingCount = typingQuestions.length;
                 
                 if (userCount === 0 && typingCount === 0) {
-                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> هیچ سوالی یافت نشد';
+                    statusElement.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i> هیچ سوالی یافت نشد! فرمت فایل را بررسی کنید.';
                 } else {
-                    statusElement.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success-color);"></i> ${userCount} سوال کاربر رایانه | ${typingCount} سوال تایپ رایانه`;
+                    let statusHTML = `<i class="fas fa-check-circle" style="color: var(--success-color);"></i> `;
+                    
+                    if (userCount > 0) {
+                        statusHTML += `<span style="color: var(--primary-color);">${userCount} سوال کاربر</span>`;
+                    }
+                    
+                    if (typingCount > 0) {
+                        if (userCount > 0) statusHTML += ' | ';
+                        statusHTML += `<span style="color: var(--secondary-color);">${typingCount} سوال تایپ</span>`;
+                    }
+                    
+                    statusElement.innerHTML = statusHTML;
                 }
             }
         }
@@ -1077,14 +1137,14 @@
         // تابع انتخاب نوع آزمون
         function selectExamType(type) {
             if (!questionsLoaded) {
-                alert('⚠️ سوالات هنوز بارگذاری نشده‌اند. لطفاً چند لحظه صبر کنید.');
+                alert('❌ سوالات بارگذاری نشده‌اند!\n\nلطفاً:\n1. فایل QuizDiplom.txt را در کنار فایل HTML قرار دهید\n2. صفحه را رفرش کنید\n3. دوباره وارد شوید');
                 return;
             }
             
             const allQuestions = type === 'user' ? userQuestions : typingQuestions;
             
             if (allQuestions.length === 0) {
-                alert(`❌ هیچ سوالی برای آزمون ${type === 'user' ? 'کاربر رایانه' : 'تایپ رایانه'} یافت نشد.\n\nلطفاً فایل QuizDiplom.txt را در کنار فایل HTML قرار دهید.`);
+                alert(`❌ هیچ سوالی برای آزمون ${type === 'user' ? 'کاربر رایانه' : 'تایپ رایانه'} یافت نشد.\n\nلطفاً فایل QuizDiplom.txt را بررسی کنید.`);
                 return;
             }
             
@@ -1194,6 +1254,7 @@
             return selected;
         }
 
+        // بقیه توابع بدون تغییر باقی می‌مانند...
         // تابع شروع تایمر
         function startTimer() {
             let timeLeft = 30 * 60;
@@ -1673,11 +1734,17 @@
 
         // مقداردهی اولیه هنگام بارگذاری صفحه
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 سیستم آزمون در حال راه‌اندازی...');
+            
             // فوراً شروع به بارگذاری سوالات می‌کنیم
-            loadQuestionsAutomatically().then(() => {
-                console.log('سوالات بارگذاری شد');
+            loadQuestionsAutomatically().then((success) => {
+                if (success) {
+                    console.log('✅ سوالات با موفقیت بارگذاری شدند');
+                } else {
+                    console.error('❌ سوالات بارگذاری نشدند');
+                }
             }).catch(error => {
-                console.error('خطا در بارگذاری سوالات:', error);
+                console.error('❌ خطا در بارگذاری سوالات:', error);
             });
             
             // رویدادهای ورود
