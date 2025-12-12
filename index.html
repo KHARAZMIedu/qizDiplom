@@ -19,6 +19,7 @@
             --warning-color: #f39c12;
             --info-color: #3498db;
             --answered-color: #6c757d;
+            --blackwhite-color: #333;
             --gradient-primary: linear-gradient(135deg, var(--primary-color), #159895, #57c4b0);
             --gradient-success: linear-gradient(135deg, var(--success-color), #27ae60);
             --gradient-danger: linear-gradient(135deg, var(--danger-color), #c0392b);
@@ -26,6 +27,7 @@
             --gradient-answered: linear-gradient(135deg, #6c757d, #495057);
             --gradient-nav-prev: linear-gradient(135deg, var(--nav-prev-color), #1976D2);
             --gradient-nav-next: linear-gradient(135deg, var(--nav-next-color), #7B1FA2);
+            --gradient-blackwhite: linear-gradient(135deg, #333, #666, #999);
             --box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
             --box-shadow-hover: 0 5px 15px rgba(0, 0, 0, 0.1);
             --transition: all 0.2s ease;
@@ -668,6 +670,9 @@
                     <button class="exam-type-btn" id="typing-exam-btn" onclick="selectExamType('typing')">
                         <i class="fas fa-keyboard"></i> آزمون تایپ رایانه
                     </button>
+                    <button class="exam-type-btn" id="blackwhite-exam-btn" onclick="selectExamType('blackwhite')">
+                        <i class="fas fa-adjust"></i> آزمون سیاه و سفید
+                    </button>
                 </div>
                 
                 <!-- نمایش وضعیت سوالات -->
@@ -770,7 +775,7 @@
         let currentQuestionIndex = 0;
         let timerInterval = null;
         let currentExamType = "";
-        let correctPassword = "1452";
+        let correctPassword = "2070";
         let userAnswers = [];
         
         // آرایه‌های سوالات
@@ -866,7 +871,7 @@
                     console.warn('⚠️ فایل typequiz.txt پیدا نشد یا خطا در خواندن');
                 }
                 
-                // پردازش فایل سیاه و سفید (اختیاری)
+                // پردازش فایل سیاه و سفید
                 if (blackwhiteData.status === 'fulfilled' && blackwhiteData.value) {
                     await parseTxtQuestions(blackwhiteData.value, 'blackwhite');
                 } else {
@@ -1066,7 +1071,7 @@
                         parts.push(`<span style="color: var(--secondary-color);">${typingCount} سوال تایپ</span>`);
                     }
                     if (blackwhiteCount > 0) {
-                        parts.push(`<span style="color: #333;">${blackwhiteCount} سوال سیاه‌وسفید</span>`);
+                        parts.push(`<span style="color: var(--blackwhite-color);">${blackwhiteCount} سوال سیاه‌وسفید</span>`);
                     }
                     
                     statusHTML += parts.join(' | ');
@@ -1219,8 +1224,6 @@
                 ];
                 
                 // پیدا کردن شاخص جدید پاسخ صحیح در گزینه‌های مخلوط شده
-                // باید ببینیم شاخص اصلی پاسخ (مثلاً 2 برای "ج") 
-                // در نقشه مخلوط کردن به کدام شاخص تبدیل شده است
                 let newCorrectIndex = -1;
                 for (let i = 0; i < indices.length; i++) {
                     if (indices[i] === originalAnswerIndex) {
