@@ -1,3 +1,10 @@
+از کدام گزینه برای تعیین نحوه ی نمایش و قالب بندی شماره ها استفاده میشود؟
+Number Format
+Bullets
+Multilevel List
+Page Number
+الف
+
 از کدام حالت نمایش برای طراحی صفحه وب در محیط Word استفاده میشود؟
 Web Layout
 Print Layout
