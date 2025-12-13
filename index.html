@@ -753,8 +753,8 @@
                 <button class="nav-btn" id="new-exam-btn" onclick="startSameExamAgain()" style="background: var(--gradient-primary);">
                     <i class="fas fa-redo"></i> آزمون جدید
                 </button>
+				<button class="nav-btn nav-prev-btn" id="prev-result-btn" onclick="prevResultQuestion()">قبلی <i class="fas fa-arrow-left"></i></button>
                 <button class="nav-btn nav-next-btn" id="next-result-btn" onclick="nextResultQuestion()"><i class="fas fa-arrow-right"></i> بعدی</button>
-                <button class="nav-btn nav-prev-btn" id="prev-result-btn" onclick="prevResultQuestion()">قبلی <i class="fas fa-arrow-left"></i></button>
             </div>
             
             <!-- شماره سوالات -->
@@ -763,7 +763,7 @@
     </div>
 
     <footer>
-        <h3>© 2025 آزمون کاربر و تایپ رایانه - موسسه آموزشی خوارزمی | 09387405653 - 02832562070</h3>
+        <h3>© 2025  - موسسه آموزشی خوارزمی با مدیریت مهندس ساجدی&nbsp; | 09387405653 - 02832562070</h3>
         <a href="https://starfox1official.github.io/say4s/" style="color: inherit; text-decoration: none;">
             <h3>SAY4s</h3>
         </a>
@@ -1176,7 +1176,7 @@
             }
             
             // انتخاب سوالات تصادفی
-            const questionCount = Math.min(20, allQuestions.length);
+            const questionCount = Math.min(14, allQuestions.length);
             currentQuestions = getRandomQuestions(allQuestions, questionCount);
             userAnswers = new Array(currentQuestions.length).fill(null);
             
