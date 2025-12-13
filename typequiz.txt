@@ -1468,7 +1468,7 @@ Tab Stop
 الف
 
 نوع چاپگر انتخابی در کدام گزینه از کادر Print دیده میشود؟
-Printer
+type
 Settings
 Pages
 Copies
